@@ -6,7 +6,7 @@ import type { WhatsUpEvent } from "@/lib/types";
 
 const eventSchema = z.object({
   id: z.string().min(1).max(200),
-  source: z.enum(["ticketmaster", "ai"]),
+  source: z.enum(["ticketmaster", "ai", "web"]),
   sourceId: z.string().min(1).max(200),
   title: z.string().min(1).max(500),
   description: z.string().nullable(),

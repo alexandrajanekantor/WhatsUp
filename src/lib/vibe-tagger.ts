@@ -3,7 +3,7 @@ import type { VibeId } from "./vibes";
 const KEYWORDS: Record<VibeId, RegExp> = {
   family: /\b(family|kids?|children|all ages|puppet|storytime)\b/i,
   outdoorsy: /\b(hike|hiking|trail|park|garden|kayak|camp|outdoor|nature|farm|festival grounds)\b/i,
-  witchy: /\b(witch|tarot|astrolog|moon|crystal|occult|pagan|psychic|seance|spell|ritual|oracle|goth)\b/i,
+  witchy: /\b(witch\w*|tarot|astrolog\w*|moon\w*|crystals?|occult|pagan\w*|psychic\w*|seances?|spells?|rituals?|oracle|goth\w*|haunt\w*|ghosts?)\b/i,
   nightlife: /\b(nightclub|dj|club night|dance party|late night|bar crawl|drag)\b/i,
   arts: /\b(art|gallery|museum|theat(er|re)|ballet|opera|exhibit|symphony|film|poetry)\b/i,
   music: /\b(concert|live music|band|tour|album|jazz|orchestra)\b/i,

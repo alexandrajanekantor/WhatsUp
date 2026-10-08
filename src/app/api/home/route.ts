@@ -1,4 +1,5 @@
 import { getUser, unauthorized } from "@/lib/auth";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { runSources, todayPlus } from "@/lib/search";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { searchInputSchema, type StreamMessage, type WhatsUpEvent } from "@/lib/types";
@@ -45,6 +46,12 @@ export async function GET(request: Request) {
         }
       }
 
+      const limit = rateLimit(clientKey(request, user.id), 6, 60 * 60 * 1000); // 6 rebuilds / hour
+      if (!limit.ok) {
+        send({ type: "source_error", source: "limit", message: `Too many refreshes — try again in ${Math.ceil(limit.retryAfterSec / 60)} min.` });
+        controller.close();
+        return;
+      }
       const events = await runSources(input, geo, send);
       await db.from("home_feed").upsert({
         user_id: user.id,

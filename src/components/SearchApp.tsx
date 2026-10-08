@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import EventCard from "./EventCard";
+import ResultsList, { SourceNotices, type SourceStatus } from "./ResultsList";
 import VibePicker from "./VibePicker";
 import { readNdjson } from "@/lib/ndjson";
 import { VIBE_IDS, type VibeId } from "@/lib/vibes";
@@ -11,12 +11,14 @@ import type { StreamMessage, WhatsUpEvent } from "@/lib/types";
 const today = () => new Date().toISOString().slice(0, 10);
 const plusDays = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
-type SourceStatus = "pending" | "done" | "error";
 
-export default function SearchApp() {
+// In dev the location starts as the test city so the form is ready to go.
+const DEFAULT_TEST_CITY = process.env.NODE_ENV !== "production" ? "Manhattan, New York" : "";
+
+export default function SearchApp({ aiEnabled }: { aiEnabled: boolean }) {
   // History's "Run again" links here with the search in the query string (?run=1 starts it right away).
   const params = useSearchParams();
-  const [location, setLocation] = useState(params.get("location") ?? "");
+  const [location, setLocation] = useState(params.get("location") ?? DEFAULT_TEST_CITY);
   const [startDate, setStartDate] = useState(params.get("from") ?? today());
   const [endDate, setEndDate] = useState(params.get("to") ?? plusDays(7));
   const [radiusKm, setRadiusKm] = useState(Number(params.get("radius")) || 40);
@@ -30,8 +32,10 @@ export default function SearchApp() {
   const [accessible, setAccessible] = useState(params.get("accessible") === "1");
   const [showMore, setShowMore] = useState(Boolean(params.get("free") || params.get("maxPrice") || params.get("setting") || params.get("time") || params.get("accessible")));
 
+  const [searchedVibes, setSearchedVibes] = useState<VibeId[]>([]);
   const [events, setEvents] = useState<WhatsUpEvent[]>([]);
   const [status, setStatus] = useState<Record<string, SourceStatus> | null>(null);
+  const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,11 +51,13 @@ export default function SearchApp() {
     setEndDate(new Date(fri.getTime() + 2 * 864e5).toISOString().slice(0, 10));
   };
 
-  async function runSearch() {
+  async function runSearch(deep = false) {
     setLoading(true);
     setError(null);
     setEvents([]);
-    setStatus({ ticketmaster: "pending", ai: "pending" });
+    setSourceErrors({});
+    setSearchedVibes(vibes);
+    setStatus({ ticketmaster: "pending", web: "pending", ...(deep ? { ai: "pending" as const } : {}) });
     try {
       const res = await fetch("/api/search", {
         method: "POST",
@@ -59,7 +65,7 @@ export default function SearchApp() {
         body: JSON.stringify({
           location, startDate, endDate, radiusKm, vibes, freeOnly,
           maxPrice: maxPrice === "" ? null : Number(maxPrice),
-          setting, timeOfDay, accessible,
+          setting, timeOfDay, accessible, deep,
         }),
       });
       if (!res.ok) {
@@ -81,6 +87,7 @@ export default function SearchApp() {
       setEvents((prev) => [...prev, ...msg.events]);
     } else if (msg.type === "source_error") {
       setStatus((s) => ({ ...s, [msg.source]: "error" }));
+      setSourceErrors((e) => ({ ...e, [msg.source]: msg.message }));
     } else if (msg.type === "done") {
       setEvents(msg.events);
     }
@@ -90,12 +97,10 @@ export default function SearchApp() {
   useEffect(() => {
     if (params.get("run") === "1" && location && !autoRan.current) {
       autoRan.current = true;
-      void runSearch();
+      void runSearch(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const label = (s: SourceStatus | undefined) => (s === "pending" ? "searching…" : s === "error" ? "unavailable" : "done");
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10">
@@ -104,7 +109,7 @@ export default function SearchApp() {
         <p className="mt-2 text-stone-600">Plan fun into your life, wherever you are.</p>
       </header>
 
-      <form onSubmit={(e) => { e.preventDefault(); void runSearch(); }} className="space-y-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <form onSubmit={(e) => { e.preventDefault(); void runSearch(false); }} className="space-y-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
           <label className="text-sm font-medium">
             Where?
@@ -179,21 +184,25 @@ export default function SearchApp() {
         </button>
       </form>
 
-      {status && (
-        <p className="mt-4 text-sm text-stone-600">
-          Ticketmaster: {label(status.ticketmaster)} · Web search (Claude): {label(status.ai)}
-          {loading && " — the web search can take a minute or two."}
+      <SourceNotices status={status} errors={sourceErrors} />
+      {error && (
+        <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-red-800">
+          {error}{" "}
+          <button type="button" onClick={() => void runSearch(false)} className="font-medium underline">Try again</button>
         </p>
       )}
-      {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
 
-      <section className="mt-6 space-y-3">
-        {events.length > 0 && <h2 className="text-lg font-semibold">{events.length} ideas</h2>}
-        {events.map((ev) => <EventCard key={ev.id} event={ev} />)}
-        {!loading && status && events.length === 0 && !error && (
-          <p className="text-stone-600">Nothing found. Try widening the dates, distance or vibes.</p>
-        )}
-      </section>
+      <ResultsList events={events} vibes={searchedVibes} loading={loading} searched={status !== null && !error} />
+
+      {aiEnabled && status && !loading && !error && !("ai" in status) && (
+        <div className="mt-6 rounded-xl border border-dashed border-violet-300 bg-violet-50 p-4 text-center">
+          <p className="text-sm text-violet-900">Want more? Dig deeper has Claude search the live web for niche events our calendars miss.</p>
+          <button type="button" onClick={() => void runSearch(true)} className="mt-3 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+            Dig deeper with AI web search
+          </button>
+          <p className="mt-2 text-xs text-violet-700">Takes a minute or two and is limited to a few per 10 minutes.</p>
+        </div>
+      )}
     </div>
   );
 }

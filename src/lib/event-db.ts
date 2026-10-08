@@ -43,7 +43,7 @@ export const toRow = (e: WhatsUpEvent): EventRow => ({
 
 export const fromRow = (r: EventRow): WhatsUpEvent => ({
   id: r.id,
-  source: r.source === "ai" ? "ai" : "ticketmaster",
+  source: r.source === "ai" ? "ai" : r.source === "web" ? "web" : "ticketmaster",
   sourceId: r.source_id,
   title: r.title,
   description: r.description,

@@ -1,3 +1,4 @@
+import { rankEvents } from "./rank";
 import type { SearchInput, WhatsUpEvent } from "./types";
 
 const norm = (s: string | null) => (s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -43,11 +44,5 @@ export function mergeEvents(lists: WhatsUpEvent[][], input: SearchInput): WhatsU
     if (input.maxPrice != null && e.priceMin != null && e.priceMin > input.maxPrice) return false;
     return true;
   });
-  return rank(events, input);
-}
-
-function rank(events: WhatsUpEvent[], input: SearchInput): WhatsUpEvent[] {
-  const score = (e: WhatsUpEvent) =>
-    input.vibes.length ? input.vibes.filter((v) => e.vibes.includes(v)).length : 0;
-  return events.sort((a, b) => score(b) - score(a) || (a.startAt ?? "~").localeCompare(b.startAt ?? "~"));
+  return rankEvents(events, input.vibes);
 }

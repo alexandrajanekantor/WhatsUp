@@ -18,6 +18,14 @@ function formatPrice(e: WhatsUpEvent) {
   return range;
 }
 
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "calendar";
+  }
+};
+
 export default function EventCard({ event }: { event: WhatsUpEvent }) {
   const price = formatPrice(event);
   const { isFavorite, toggle } = useFavorites();
@@ -54,6 +62,11 @@ export default function EventCard({ event }: { event: WhatsUpEvent }) {
             ) : null;
           })}
           {price && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800">{price}</span>}
+          {event.source === "web" && (
+            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs text-sky-800" title="Collected from the venue's or organizer's own calendar">
+              {hostOf(event.sourceUrl)}
+            </span>
+          )}
           {event.source === "ai" && (
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-800" title="Found by Claude via web search">
               ✨ AI-found

@@ -1,0 +1,41 @@
+// Starter calendar pages per city, used when no discovery has run yet. Everything here is only a
+// *candidate*: the probe (scanSource) decides whether it actually yields events. Discovery
+// (discover.ts) is what finds sources for cities that have no seed list.
+export const SEEDS: Record<string, { name: string; url: string }[]> = {
+  "manhattan-new-york": [
+    { name: "NYC Parks events", url: "https://www.nycgovparks.org/events" },
+    { name: "New York Public Library", url: "https://www.nypl.org/events" },
+    { name: "Central Park Conservancy", url: "https://www.centralparknyc.org/events" },
+    { name: "Bryant Park", url: "https://bryantpark.org/programs" },
+    { name: "Lincoln Center", url: "https://www.lincolncenter.org/calendar" },
+    { name: "Carnegie Hall", url: "https://www.carnegiehall.org/Calendar" },
+    { name: "The Met", url: "https://www.metmuseum.org/events" },
+    { name: "MoMA", url: "https://www.moma.org/calendar/" },
+    { name: "American Museum of Natural History", url: "https://www.amnh.org/calendar" },
+    { name: "The Strand Bookstore", url: "https://www.strandbooks.com/events" },
+    { name: "Housing Works Bookstore", url: "https://www.housingworks.org/events" },
+    { name: "Brooklyn Bridge Park / Hudson River Park", url: "https://hudsonriverpark.org/events/" },
+    { name: "NYC Tourism (NYC Go)", url: "https://www.nycgo.com/events" },
+    { name: "Columbia University events", url: "https://events.columbia.edu/" },
+    { name: "NYU events", url: "https://www.nyu.edu/events.html" },
+    { name: "Time Out New York", url: "https://www.timeout.com/newyork/things-to-do/things-to-do-in-new-york-this-week" },
+    { name: "The Skint / Gothamist events", url: "https://gothamist.com/events" },
+  ],
+  "portland-oregon": [
+    { name: "Travel Portland events", url: "https://www.travelportland.com/events/" },
+    { name: "City of Portland events", url: "https://www.portland.gov/events" },
+    { name: "Multnomah County Library", url: "https://multcolib.org/events" },
+    { name: "Portland State University", url: "https://events.pdx.edu/" },
+    { name: "Portland'5 Centers for the Arts", url: "https://www.portland5.com/events" },
+    { name: "Oregon Zoo", url: "https://www.oregonzoo.org/events" },
+    { name: "OMSI", url: "https://omsi.edu/calendar" },
+    { name: "Portland Art Museum", url: "https://portlandartmuseum.org/calendar/" },
+    { name: "Powell's Books events", url: "https://www.powells.com/events" },
+    { name: "McMenamins events", url: "https://www.mcmenamins.com/events" },
+    { name: "Portland Saturday Market", url: "https://www.portlandsaturdaymarket.com/" },
+    { name: "Portland Monthly events", url: "https://www.pdxmonthly.com/events" },
+    { name: "Willamette Week events", url: "https://www.wweek.com/events/" },
+    { name: "Washington Park", url: "https://washingtonparkpdx.org/events" },
+    { name: "Japanese Garden", url: "https://japanesegarden.org/events/" },
+  ],
+};

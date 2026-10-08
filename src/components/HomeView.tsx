@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import EventCard from "./EventCard";
+import ResultsList, { SourceNotices, type SourceStatus } from "./ResultsList";
 import VibePicker from "./VibePicker";
 import { readNdjson } from "@/lib/ndjson";
 import type { StreamMessage, WhatsUpEvent } from "@/lib/types";
@@ -22,6 +22,8 @@ export default function HomeView({ initial, name }: { initial: HomeSettings | nu
 
   const [events, setEvents] = useState<WhatsUpEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<Record<string, SourceStatus> | null>(null);
+  const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ cached: boolean; generatedAt?: string } | null>(null);
 
@@ -29,6 +31,8 @@ export default function HomeView({ initial, name }: { initial: HomeSettings | nu
     setLoading(true);
     setError(null);
     setMeta(null);
+    setSourceErrors({});
+    setStatus({ ticketmaster: "pending", web: "pending" });
     if (refresh) setEvents([]);
     try {
       const res = await fetch(`/api/home${refresh ? "?refresh=1" : ""}`);
@@ -37,10 +41,16 @@ export default function HomeView({ initial, name }: { initial: HomeSettings | nu
         return;
       }
       await readNdjson<StreamMessage>(res, (msg) => {
-        if (msg.type === "source") setEvents((prev) => [...prev, ...msg.events]);
-        else if (msg.type === "done") {
+        if (msg.type === "source") {
+          setStatus((s) => ({ ...s, [msg.source]: "done" }));
+          setEvents((prev) => [...prev, ...msg.events]);
+        } else if (msg.type === "source_error") {
+          setStatus((s) => ({ ...s, [msg.source]: "error" }));
+          setSourceErrors((e) => ({ ...e, [msg.source]: msg.message }));
+        } else if (msg.type === "done") {
           setEvents(msg.events);
           setMeta({ cached: Boolean(msg.cached), generatedAt: msg.generatedAt });
+          if (msg.cached) setStatus(null);
         }
       });
     } catch {
@@ -135,15 +145,19 @@ export default function HomeView({ initial, name }: { initial: HomeSettings | nu
         )
       )}
 
-      {loading && <p className="mt-4 text-sm text-stone-600">Finding things to do — the web search can take a minute or two…</p>}
-      {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
+      <SourceNotices status={loading ? status : status && Object.values(status).includes("error") ? status : null} errors={sourceErrors} />
+      {error && (
+        <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-red-800">
+          {error}{" "}
+          <button type="button" onClick={() => void loadFeed(true)} className="font-medium underline">Try again</button>
+        </p>
+      )}
 
-      {settings && (
-        <section className="mt-6 space-y-3">
-          {events.length > 0 && <h2 className="text-lg font-semibold">{events.length} ideas for the next 7 days</h2>}
-          {events.map((ev) => <EventCard key={ev.id} event={ev} />)}
-          {!loading && !error && events.length === 0 && <p className="text-stone-600">Nothing found this week. Try more vibes or a bigger radius.</p>}
-        </section>
+      {settings && !editing && (
+        <ResultsList
+          events={events} vibes={settings.vibes} loading={loading} searched={!error}
+          heading={(n) => `${n} ideas for the next 7 days`}
+        />
       )}
     </div>
   );
