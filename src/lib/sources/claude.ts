@@ -16,6 +16,7 @@ const aiEventSchema = z.object({
   price_max: z.number().nullish(),
   vibes: z.array(z.string()).default([]),
   source_url: z.string().url(),
+  link_type: z.enum(["event", "listing"]).default("listing"),
 });
 
 function buildPrompt(input: SearchInput, geo: GeoResult) {
@@ -26,10 +27,10 @@ function buildPrompt(input: SearchInput, geo: GeoResult) {
 Vibes the user wants: ${wanted}.
 Other preferences: setting=${input.setting}; time of day=${input.timeOfDay}; ${input.freeOnly ? "free only; " : ""}${input.maxPrice != null ? `max price ${input.maxPrice}; ` : ""}${input.accessible ? "must be wheelchair accessible; " : ""}
 
-Search the web thoroughly, including local calendars, venue sites, community boards, markets, shops, parks departments, and niche organizers, not just big ticketing sites. Be exhaustive: return every good match you can verify, up to 40. Only include events whose date falls in the range and that you found on a page you can link to. Never invent events or URLs; source_url must be the actual page for that event.
+Search the web thoroughly, including local calendars, venue sites, community boards, markets, shops, parks departments, and niche organizers, not just big ticketing sites. Be exhaustive: return every good match you can verify, up to 40. Only include events whose date falls in the range and that you found on a page you can link to. Never invent events or URLs. source_url must be the most specific page for that exact event (the event's own page, a ticketing/registration page, or the organizer's page for it); open pages to find it rather than citing a roundup. Only if no event-specific page exists, use the best calendar or article page that lists it. Set link_type to "event" when source_url is event-specific, otherwise "listing".
 
 Respond with ONLY a JSON array (no prose, no markdown fences). Each item:
-{"title": string, "description": string (1-2 sentences), "start": ISO 8601 or null, "end": ISO 8601 or null, "venue": string|null, "address": string|null, "price_min": number|null, "price_max": number|null, "vibes": subset of [${vibeList}], "source_url": string}`;
+{"title": string, "description": string (1-2 sentences), "start": ISO 8601 or null, "end": ISO 8601 or null, "venue": string|null, "address": string|null, "price_min": number|null, "price_max": number|null, "vibes": subset of [${vibeList}], "source_url": string, "link_type": "event"|"listing"}`;
 }
 
 function extractJson(text: string): unknown[] {
@@ -87,6 +88,7 @@ export async function searchWithClaude(input: SearchInput, geo: GeoResult): Prom
       vibes: e.vibes,
       imageUrl: null,
       sourceUrl: e.source_url,
+      listingPage: e.link_type === "listing",
     });
   }
   return out;

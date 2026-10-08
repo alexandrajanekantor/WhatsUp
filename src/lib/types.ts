@@ -34,6 +34,8 @@ export interface WhatsUpEvent {
   vibes: string[];
   imageUrl: string | null;
   sourceUrl: string;
+  /** True when sourceUrl is a roundup/calendar page rather than the specific event page. */
+  listingPage?: boolean;
 }
 
 export interface GeoResult {

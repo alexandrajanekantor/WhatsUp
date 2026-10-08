@@ -33,7 +33,9 @@ export function mergeEvents(lists: WhatsUpEvent[][], input: SearchInput): WhatsU
   for (const list of lists) {
     for (const e of list) {
       const key = dedupeKey(e);
-      if (!seen.has(key)) seen.set(key, e);
+      const prev = seen.get(key);
+      // Keep the first (API data wins), but within sources prefer an event-specific link over a roundup.
+      if (!prev || (prev.listingPage && !e.listingPage && prev.source === e.source)) seen.set(key, e);
     }
   }
   const events = [...seen.values()].filter((e) => {

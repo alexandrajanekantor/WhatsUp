@@ -45,6 +45,11 @@ export default function EventCard({ event }: { event: WhatsUpEvent }) {
               ✨ AI-found
             </span>
           )}
+          {event.listingPage && (
+            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600" title="Links to a calendar or article that lists this event">
+              Listed on a roundup page
+            </span>
+          )}
           <a
             href={event.sourceUrl}
             target="_blank"
