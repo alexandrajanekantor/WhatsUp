@@ -19,6 +19,11 @@ Next 16 differs from older versions (e.g. `middleware` is now `src/proxy.ts`); r
 - `src/lib/vibes.ts` is the vibe list; `src/lib/vibe-tagger.ts` tags API events by keyword.
 - `src/lib/supabase/{client,server}.ts`, `src/proxy.ts` refresh the auth session.
 - Auth: Supabase email+password. Login is client-side (`AuthForm` -> `signInWithPassword`); signup goes through `POST /api/auth/signup`, which creates the user already-confirmed with the service-role admin client (email confirmation intentionally skipped for now; revisit before launch), then signs in. `POST /api/auth/signout`. `Header` (server component, wrapped in `<Suspense>` in the layout) shows login state. Migration 0002 adds a trigger that creates a `profiles` row for each new auth user.
+- Account features (all APIs auth via `getUser()` in `src/lib/auth.ts` and scope every query by `user.id`, using the admin client; RLS is deferred, so the anon key can currently read all tables):
+  - **Home** (`/home`, `HomeView`): user sets city (geocoded, stored as `profiles.home_location/home_lat/home_lng`), default vibes and radius via `PATCH /api/profile`. `GET /api/home` streams the next-7-days feed through the same `runSources` pipeline as search and caches it in `home_feed` (12h TTL, keyed on city/radius/vibes/date; `?refresh=1` forces a rebuild). Login/signup land here.
+  - **Favorites**: `FavoritesProvider` (in the root layout) holds favorited ids; heart on `EventCard`; `POST/DELETE /api/favorites` caches the event into `events` then writes `favorites`; `/favorites` lists them.
+  - **History**: `POST /api/search` records logged-in searches in `searches`; `/history` lists them; "Run again" links to `/?location=...&run=1` which `SearchApp` prefills and auto-runs.
+  - Shared search pipeline: `src/lib/search.ts` (`runSources`); client NDJSON reader: `src/lib/ndjson.ts`.
 - Next 16 prerender rules: anything reading `cookies()` or `new Date()` must sit inside `<Suspense>` (layout wraps `Header`; `page.tsx` wraps `SearchApp`), or dev shows an error badge.
 - Schema: `supabase/migrations/*.sql` (tracked in `public.schema_migrations`; apply with `node scripts/migrate.mjs`), (profiles, searches, events cache, favorites).
 
@@ -28,7 +33,7 @@ Next 16 differs from older versions (e.g. `middleware` is now `src/proxy.ts`); r
 - Direct DB host `db.<ref>.supabase.co` is IPv6-only and unreachable here; `scripts/db.mjs` uses the session pooler (project is in us-east-1) with user `postgres.<ref>`.
 
 ## Status
-Done: scaffold, search pipeline, search UI, real searches verified (Ticketmaster + Claude). Schema applied to the Supabase project and seeded (3 `seed:*` fixture events in `events`; profiles/searches/favorites empty). After DDL changes run `notify pgrst, 'reload schema'` so the REST API sees new tables. Auth pages + profile trigger built (signup/login not yet exercised with a real account). TODO: preferences/history/favorites, event detail + calendar export, polish, RLS.
+Done: scaffold, search pipeline, search UI, real searches verified (Ticketmaster + Claude). Schema applied to the Supabase project and seeded (3 `seed:*` fixture events in `events`; profiles/searches/favorites empty). After DDL changes run `notify pgrst, 'reload schema'` so the REST API sees new tables. Auth pages + profile trigger built (signup/login not yet exercised with a real account). Home/favorites/history built (logged-in flows untested by Claude: needs a real account). TODO: event detail + calendar export, polish, RLS.
 
 ## Hooks
 `.claude/settings.json`: after a real `git commit` (the script re-checks the command, since the settings `if` filter over-matched), and on Stop when 3+ src/config files are newer than this file, Claude is asked to review and update CLAUDE.md.

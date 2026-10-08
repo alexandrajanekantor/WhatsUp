@@ -43,3 +43,9 @@ export interface GeoResult {
   lat: number;
   lng: number;
 }
+
+export type StreamMessage =
+  | { type: "geo"; geo: GeoResult }
+  | { type: "source"; source: string; events: WhatsUpEvent[] }
+  | { type: "source_error"; source: string; message: string }
+  | { type: "done"; events: WhatsUpEvent[]; cached?: boolean; generatedAt?: string };

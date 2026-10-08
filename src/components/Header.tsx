@@ -15,7 +15,10 @@ export default async function Header() {
         <div className="flex items-center gap-4 text-sm">
           {user ? (
             <>
-              <span className="text-stone-600">Hi, {name}</span>
+              <Link href="/home" className="hover:underline">Home</Link>
+              <Link href="/favorites" className="hover:underline">Favorites</Link>
+              <Link href="/history" className="hover:underline">History</Link>
+              <span className="hidden text-stone-500 sm:inline">Hi, {name}</span>
               <form action="/api/auth/signout" method="post">
                 <button className="text-violet-700 hover:underline">Log out</button>
               </form>

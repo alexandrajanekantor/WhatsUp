@@ -1,40 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import EventCard from "./EventCard";
-import { VIBES, type VibeId } from "@/lib/vibes";
-import type { WhatsUpEvent } from "@/lib/types";
+import VibePicker from "./VibePicker";
+import { readNdjson } from "@/lib/ndjson";
+import { VIBE_IDS, type VibeId } from "@/lib/vibes";
+import type { StreamMessage, WhatsUpEvent } from "@/lib/types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const plusDays = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
 type SourceStatus = "pending" | "done" | "error";
-type StreamMessage =
-  | { type: "geo" }
-  | { type: "source"; source: string; events: WhatsUpEvent[] }
-  | { type: "source_error"; source: string; message: string }
-  | { type: "done"; events: WhatsUpEvent[] };
 
 export default function SearchApp() {
-  const [location, setLocation] = useState("");
-  const [startDate, setStartDate] = useState(today());
-  const [endDate, setEndDate] = useState(plusDays(7));
-  const [radiusKm, setRadiusKm] = useState(40);
-  const [vibes, setVibes] = useState<VibeId[]>([]);
-  const [freeOnly, setFreeOnly] = useState(false);
-  const [maxPrice, setMaxPrice] = useState<string>("");
-  const [setting, setSetting] = useState("any");
-  const [timeOfDay, setTimeOfDay] = useState("any");
-  const [accessible, setAccessible] = useState(false);
-  const [showMore, setShowMore] = useState(false);
+  // History's "Run again" links here with the search in the query string (?run=1 starts it right away).
+  const params = useSearchParams();
+  const [location, setLocation] = useState(params.get("location") ?? "");
+  const [startDate, setStartDate] = useState(params.get("from") ?? today());
+  const [endDate, setEndDate] = useState(params.get("to") ?? plusDays(7));
+  const [radiusKm, setRadiusKm] = useState(Number(params.get("radius")) || 40);
+  const [vibes, setVibes] = useState<VibeId[]>(
+    (params.get("vibes") ?? "").split(",").filter((v): v is VibeId => (VIBE_IDS as string[]).includes(v)),
+  );
+  const [freeOnly, setFreeOnly] = useState(params.get("free") === "1");
+  const [maxPrice, setMaxPrice] = useState<string>(params.get("maxPrice") ?? "");
+  const [setting, setSetting] = useState(params.get("setting") ?? "any");
+  const [timeOfDay, setTimeOfDay] = useState(params.get("time") ?? "any");
+  const [accessible, setAccessible] = useState(params.get("accessible") === "1");
+  const [showMore, setShowMore] = useState(Boolean(params.get("free") || params.get("maxPrice") || params.get("setting") || params.get("time") || params.get("accessible")));
 
   const [events, setEvents] = useState<WhatsUpEvent[]>([]);
   const [status, setStatus] = useState<Record<string, SourceStatus> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const toggleVibe = (id: VibeId) =>
-    setVibes((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]));
 
   const quick = (days: number) => {
     setStartDate(today());
@@ -48,13 +47,11 @@ export default function SearchApp() {
     setEndDate(new Date(fri.getTime() + 2 * 864e5).toISOString().slice(0, 10));
   };
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function runSearch() {
     setLoading(true);
     setError(null);
     setEvents([]);
     setStatus({ ticketmaster: "pending", ai: "pending" });
-
     try {
       const res = await fetch("/api/search", {
         method: "POST",
@@ -65,21 +62,11 @@ export default function SearchApp() {
           setting, timeOfDay, accessible,
         }),
       });
-      if (!res.ok || !res.body) {
+      if (!res.ok) {
         setError((await res.json().catch(() => null))?.error ?? "Search failed");
         return;
       }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
-        for (const line of lines.filter(Boolean)) handleMessage(JSON.parse(line));
-      }
+      await readNdjson<StreamMessage>(res, handleMessage);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -99,6 +86,15 @@ export default function SearchApp() {
     }
   }
 
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (params.get("run") === "1" && location && !autoRan.current) {
+      autoRan.current = true;
+      void runSearch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const label = (s: SourceStatus | undefined) => (s === "pending" ? "searching…" : s === "error" ? "unavailable" : "done");
 
   return (
@@ -108,7 +104,7 @@ export default function SearchApp() {
         <p className="mt-2 text-stone-600">Plan fun into your life, wherever you are.</p>
       </header>
 
-      <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <form onSubmit={(e) => { e.preventDefault(); void runSearch(); }} className="space-y-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
           <label className="text-sm font-medium">
             Where?
@@ -139,18 +135,7 @@ export default function SearchApp() {
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium">What are you into?</legend>
-          <div className="flex flex-wrap gap-2">
-            {VIBES.map((v) => (
-              <button
-                key={v.id} type="button" onClick={() => toggleVibe(v.id)} aria-pressed={vibes.includes(v.id)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  vibes.includes(v.id) ? "border-violet-600 bg-violet-600 text-white" : "border-stone-300 bg-white hover:bg-stone-100"
-                }`}
-              >
-                {v.emoji} {v.label}
-              </button>
-            ))}
-          </div>
+          <VibePicker value={vibes} onChange={setVibes} />
         </fieldset>
 
         <button type="button" onClick={() => setShowMore((s) => !s)} className="text-sm text-violet-700 hover:underline">

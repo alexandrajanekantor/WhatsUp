@@ -1,3 +1,6 @@
+"use client";
+
+import { useFavorites } from "./FavoritesProvider";
 import { VIBES } from "@/lib/vibes";
 import type { WhatsUpEvent } from "@/lib/types";
 
@@ -17,6 +20,8 @@ function formatPrice(e: WhatsUpEvent) {
 
 export default function EventCard({ event }: { event: WhatsUpEvent }) {
   const price = formatPrice(event);
+  const { isFavorite, toggle } = useFavorites();
+  const fav = isFavorite(event.id);
   return (
     <article className="flex gap-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
       {event.imageUrl && (
@@ -24,7 +29,16 @@ export default function EventCard({ event }: { event: WhatsUpEvent }) {
         <img src={event.imageUrl} alt="" className="hidden h-28 w-28 shrink-0 rounded-lg object-cover sm:block" />
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-violet-700">{formatDate(event.startAt)}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-medium text-violet-700">{formatDate(event.startAt)}</p>
+          <button
+            type="button" onClick={() => toggle(event)} aria-pressed={fav}
+            aria-label={fav ? "Remove from favorites" : "Save to favorites"}
+            className={`-mt-1 rounded-full p-1 text-xl leading-none ${fav ? "text-rose-600" : "text-stone-400 hover:text-rose-500"}`}
+          >
+            {fav ? "♥" : "♡"}
+          </button>
+        </div>
         <h3 className="mt-0.5 text-lg font-semibold leading-snug">{event.title}</h3>
         {(event.venue || event.address) && (
           <p className="text-sm text-stone-600">{[event.venue, event.address].filter(Boolean).join(" · ")}</p>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import FavoritesProvider from "@/components/FavoritesProvider";
 import Header from "@/components/Header";
 
 const geistSans = Geist({
@@ -28,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-stone-50 text-stone-900"><Suspense fallback={<div className="h-[53px] border-b border-stone-200 bg-white" />}>
           <Header />
         </Suspense>
-        {children}
+        <FavoritesProvider>{children}</FavoritesProvider>
       </body>
     </html>
   );

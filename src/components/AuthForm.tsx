@@ -36,7 +36,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           return;
         }
       }
-      router.push("/");
+      router.push("/home");
       router.refresh();
     } finally {
       setLoading(false);
