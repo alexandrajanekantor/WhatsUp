@@ -1,6 +1,7 @@
 import { getUser, unauthorized } from "@/lib/auth";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
-import { runSources, todayPlus } from "@/lib/search";
+import { runSources } from "@/lib/search";
+import { timezoneAt, todayInTz } from "@/lib/time";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { searchInputSchema, type StreamMessage, type WhatsUpEvent } from "@/lib/types";
 
@@ -20,10 +21,11 @@ export async function GET(request: Request) {
     return Response.json({ error: "Set your city first" }, { status: 409 });
   }
 
+  const tz = timezoneAt(profile.home_lat, profile.home_lng);
   const input = searchInputSchema.parse({
     location: profile.home_location,
-    startDate: todayPlus(0),
-    endDate: todayPlus(7),
+    startDate: todayInTz(tz, 0),
+    endDate: todayInTz(tz, 7),
     radiusKm: profile.default_radius_km ?? 40,
     vibes: profile.default_vibes ?? [],
   });

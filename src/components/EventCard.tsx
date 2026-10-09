@@ -4,11 +4,27 @@ import { useFavorites } from "./FavoritesProvider";
 import { VIBES } from "@/lib/vibes";
 import type { WhatsUpEvent } from "@/lib/types";
 
-function formatDate(iso: string | null) {
+function formatDate(iso: string | null, timeZone?: string | null) {
   if (!iso) return "Date TBD";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "Date TBD";
-  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  // Show the time where the event is, so it reads the same wherever you're browsing from.
+  const dateOnly: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  const opts: Intl.DateTimeFormatOptions = { ...dateOnly, hour: "numeric", minute: "2-digit" };
+  // Listings without a start time are stored as local midnight: show just the date.
+  const midnight = new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? undefined, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d) === "00:00";
+  if (midnight) {
+    try {
+      return d.toLocaleDateString(undefined, timeZone ? { ...dateOnly, timeZone } : dateOnly);
+    } catch {
+      return d.toLocaleDateString(undefined, dateOnly);
+    }
+  }
+  try {
+    return d.toLocaleString(undefined, timeZone ? { ...opts, timeZone } : opts);
+  } catch {
+    return d.toLocaleString(undefined, opts);
+  }
 }
 
 function formatPrice(e: WhatsUpEvent) {
@@ -38,7 +54,7 @@ export default function EventCard({ event }: { event: WhatsUpEvent }) {
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium text-violet-700">{formatDate(event.startAt)}</p>
+          <p className="text-sm font-medium text-violet-700">{formatDate(event.startAt, event.timezone)}</p>
           <button
             type="button" onClick={() => toggle(event)} aria-pressed={fav}
             aria-label={fav ? "Remove from favorites" : "Save to favorites"}

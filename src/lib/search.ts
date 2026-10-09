@@ -1,4 +1,5 @@
 import { mergeEvents, validateLinks } from "./merge";
+import { timezoneAt, windowBounds } from "./time";
 import { searchWithClaude } from "./sources/claude";
 import { searchStored } from "./sources/stored";
 import { searchTicketmaster } from "./sources/ticketmaster";
@@ -33,7 +34,7 @@ export async function runSources(
   const settled = await Promise.allSettled(jobs);
   const lists = settled.map((r) => (r.status === "fulfilled" ? r.value : []));
   // Earlier lists win duplicates: structured API data, then our crawl, then AI.
-  const merged = mergeEvents(lists, input);
+  const merged = mergeEvents(lists, input, windowBounds(input.startDate, input.endDate, timezoneAt(geo.lat, geo.lng)));
   send({ type: "done", events: merged });
   return merged;
 }

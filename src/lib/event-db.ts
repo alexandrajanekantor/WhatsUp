@@ -19,6 +19,7 @@ export interface EventRow {
   image_url: string | null;
   source_url: string;
   listing_page?: boolean | null;
+  timezone?: string | null;
 }
 
 export const toRow = (e: WhatsUpEvent): EventRow => ({
@@ -39,6 +40,7 @@ export const toRow = (e: WhatsUpEvent): EventRow => ({
   image_url: e.imageUrl,
   source_url: e.sourceUrl,
   listing_page: e.listingPage ?? false,
+  timezone: e.timezone ?? null,
 });
 
 export const fromRow = (r: EventRow): WhatsUpEvent => ({
@@ -59,4 +61,5 @@ export const fromRow = (r: EventRow): WhatsUpEvent => ({
   imageUrl: r.image_url,
   sourceUrl: r.source_url,
   listingPage: r.listing_page ?? false,
+  timezone: r.timezone ?? null,
 });

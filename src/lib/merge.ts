@@ -28,7 +28,11 @@ export async function validateLinks(events: WhatsUpEvent[]): Promise<WhatsUpEven
   return events.filter((_, i) => checks[i]);
 }
 
-export function mergeEvents(lists: WhatsUpEvent[][], input: SearchInput): WhatsUpEvent[] {
+export function mergeEvents(
+  lists: WhatsUpEvent[][],
+  input: SearchInput,
+  bounds?: { startIso: string; endIso: string },
+): WhatsUpEvent[] {
   const seen = new Map<string, WhatsUpEvent>();
   // Earlier lists (structured API data) win over later ones (AI) on duplicates.
   for (const list of lists) {
@@ -40,6 +44,8 @@ export function mergeEvents(lists: WhatsUpEvent[][], input: SearchInput): WhatsU
     }
   }
   const events = [...seen.values()].filter((e) => {
+    // Ticketmaster also returns long-running passes/exhibits that started months ago; keep events that start in the window.
+    if (bounds && e.startAt && (e.startAt < bounds.startIso || e.startAt > bounds.endIso)) return false;
     if (input.freeOnly && (e.priceMin ?? 0) > 0) return false;
     if (input.maxPrice != null && e.priceMin != null && e.priceMin > input.maxPrice) return false;
     return true;

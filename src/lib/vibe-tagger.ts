@@ -6,7 +6,7 @@ const KEYWORDS: Record<VibeId, RegExp> = {
   witchy: /\b(witch\w*|tarot|astrolog\w*|moon\w*|crystals?|occult|pagan\w*|psychic\w*|seances?|spells?|rituals?|oracle|goth\w*|haunt\w*|ghosts?)\b/i,
   nightlife: /\b(nightclub|dj|club night|dance party|late night|bar crawl|drag)\b/i,
   arts: /\b(art|gallery|museum|theat(er|re)|ballet|opera|exhibit|symphony|film|poetry)\b/i,
-  music: /\b(concert|live music|band|tour|album|jazz|orchestra)\b/i,
+  music: /\b(concerts?|live music|bands?|world tour|album|jazz|orchestra|symphony|dj)\b/i,
   food: /\b(food|wine|beer|tasting|brunch|dinner|market|culinary|cocktail|brew)\b/i,
   wellness: /\b(yoga|meditat|sound bath|wellness|retreat|breathwork|spa)\b/i,
   nerdy: /\b(comic|anime|trivia|board game|d&d|tabletop|sci-?fi|cosplay|convention|gaming)\b/i,

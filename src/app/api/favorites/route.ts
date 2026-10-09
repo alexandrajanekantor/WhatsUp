@@ -22,6 +22,7 @@ const eventSchema = z.object({
   imageUrl: z.string().nullable(),
   sourceUrl: z.string().url().refine((u) => /^https?:\/\//.test(u), "http(s) only"),
   listingPage: z.boolean().optional(),
+  timezone: z.string().nullable().optional(),
 });
 
 // ?ids=1 -> just the favorited event ids (cheap, used to paint hearts); otherwise full events.

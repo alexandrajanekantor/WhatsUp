@@ -39,6 +39,7 @@ export async function crawlCity(city: CrawlCity, days = 28) {
         source_url: e.url,
         listing_page: false,
         city_key: city.city_key,
+        timezone: city.timezone,
         crawl_source_id: src.id,
         fetched_at: new Date().toISOString(),
       };

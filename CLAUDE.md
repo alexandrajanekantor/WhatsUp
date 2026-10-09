@@ -2,7 +2,7 @@
 
 Site to plan fun into your life: pick a place + dates + vibes (family friendly, outdoorsy, witchy, ...), get an exhaustive list of activities with links to source pages. Accounts save preferences, searches, favorites. Planned: event detail page with "Add to calendar" (.ics + Google Calendar link).
 
-Repo: https://github.com/alexandrajanekantor/WhatsUp.git (remote `origin`; not pushed yet)
+Repo: https://github.com/alexandrajanekantor/WhatsUp.git (remote `origin`, `main` is pushed)
 
 ## Stack
 Next.js 16 (App Router, `src/`), TypeScript, Tailwind 4, Supabase (Postgres + Auth), Anthropic SDK, zod.
@@ -20,6 +20,7 @@ Next 16 differs from older versions (e.g. `middleware` is now `src/proxy.ts`); r
 - `src/lib/sources/ticketmaster.ts` (pages up to 5x100 results), `src/lib/sources/claude.ts` (`claude-sonnet-5-5` + `web_search_20260209`, resumes on `pause_turn`).
 - `src/lib/merge.ts`: HEAD-validates AI links, dedupes (title + date), ranks by vibe match. AI events are labeled `source: "ai"`; `listingPage: true` marks AI results whose link is a roundup/calendar rather than the event's own page (the model labels most of them this way; resolving specific pages would need a second web_fetch pass).
 - Results UI: `ResultsList` groups results into vibe matches + a collapsed "other events nearby" list (ranking in `src/lib/rank.ts`, shared by server merge and client), with loading skeletons; `SourceNotices` shows per-source progress/failures. Rate limits (`src/lib/rate-limit.ts`, in-memory, per user/IP; swap for a shared store before multi-instance deploy): search 8/10min, Home rebuilds 6/hour. Search input is validated in `searchInputSchema` (end >= start, <= 60 days, not in the past). `app/error.tsx` and `app/not-found.tsx` exist.
+- Times: events carry an IANA `timezone` (Ticketmaster's own, or the crawl city's); `EventCard` formats in it, date-only listings (local midnight) show just the date. Search windows are the searched place's calendar days converted to UTC via `src/lib/time.ts` (`windowBounds`, tz-lookup); `mergeEvents` drops events starting outside the window (Ticketmaster returns long-running passes/exhibits).
 - `src/lib/vibes.ts` is the vibe list; `src/lib/vibe-tagger.ts` tags API events by keyword.
 - `src/lib/supabase/{client,server}.ts`, `src/proxy.ts` refresh the auth session.
 - Auth: Supabase email+password. Login is client-side (`AuthForm` -> `signInWithPassword`); signup goes through `POST /api/auth/signup`, which creates the user already-confirmed with the service-role admin client (email confirmation intentionally skipped for now; revisit before launch), then signs in. `POST /api/auth/signout`. `Header` (server component, wrapped in `<Suspense>` in the layout) shows login state. Migration 0002 adds a trigger that creates a `profiles` row for each new auth user.

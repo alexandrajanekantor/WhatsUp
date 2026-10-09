@@ -44,6 +44,8 @@ export interface WhatsUpEvent {
   vibes: string[];
   imageUrl: string | null;
   sourceUrl: string;
+  /** IANA timezone of the event's location (e.g. "America/New_York"); times display in it when known. */
+  timezone?: string | null;
   /** True when sourceUrl is a roundup/calendar page rather than the specific event page. */
   listingPage?: boolean;
 }

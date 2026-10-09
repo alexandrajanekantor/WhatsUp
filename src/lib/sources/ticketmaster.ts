@@ -1,5 +1,7 @@
 import type { GeoResult, SearchInput, WhatsUpEvent } from "../types";
 import { tagVibes } from "../vibe-tagger";
+import { parseDate } from "../crawl/dates";
+import { timezoneAt, windowBounds } from "../time";
 
 interface TmEvent {
   id: string;
@@ -7,7 +9,7 @@ interface TmEvent {
   url: string;
   info?: string;
   pleaseNote?: string;
-  dates?: { start?: { dateTime?: string; localDate?: string } };
+  dates?: { timezone?: string; start?: { dateTime?: string; localDate?: string; localTime?: string } };
   images?: { url: string; width: number }[];
   priceRanges?: { min?: number; max?: number }[];
   classifications?: { segment?: { name: string }; genre?: { name: string } }[];
@@ -33,17 +35,18 @@ export async function searchTicketmaster(input: SearchInput, geo: GeoResult): Pr
     all.push(...batch.events);
     if (page + 1 >= batch.totalPages) break;
   }
-  return all.map(toEvent);
+  return all.map((e) => toEvent(e, timezoneAt(geo.lat, geo.lng)));
 }
 
 async function fetchPage(input: SearchInput, geo: GeoResult, key: string, page: number) {
+  const { startIso, endIso } = windowBounds(input.startDate, input.endDate, timezoneAt(geo.lat, geo.lng));
   const params = new URLSearchParams({
     apikey: key,
     latlong: `${geo.lat},${geo.lng}`,
     radius: String(input.radiusKm),
     unit: "km",
-    startDateTime: `${input.startDate}T00:00:00Z`,
-    endDateTime: `${input.endDate}T23:59:59Z`,
+    startDateTime: startIso.replace(/\.\d{3}Z$/, "Z"),
+    endDateTime: endIso.replace(/\.\d{3}Z$/, "Z"),
     size: "100",
     page: String(page),
     sort: "date,asc",
@@ -57,7 +60,9 @@ async function fetchPage(input: SearchInput, geo: GeoResult, key: string, page: 
   };
 }
 
-function toEvent(e: TmEvent): WhatsUpEvent {
+function toEvent(e: TmEvent, fallbackTz: string): WhatsUpEvent {
+  const tz = e.dates?.timezone ?? fallbackTz;
+  const start = e.dates?.start;
   const venue = e._embedded?.venues?.[0];
   const cls = e.classifications?.[0];
   const price = e.priceRanges?.[0];
@@ -69,7 +74,8 @@ function toEvent(e: TmEvent): WhatsUpEvent {
     sourceId: e.id,
     title: e.name,
     description,
-    startAt: e.dates?.start?.dateTime ?? (e.dates?.start?.localDate ? `${e.dates.start.localDate}T00:00:00Z` : null),
+    // Prefer the exact instant; otherwise read the local date (+time) in the event's own timezone.
+  startAt: start?.dateTime ?? (start?.localDate ? parseDate(`${start.localDate}T${start.localTime ?? "00:00:00"}`, tz) : null),
     endAt: null,
     venue: venue?.name ?? null,
     address: [venue?.address?.line1, venue?.city?.name, venue?.state?.stateCode].filter(Boolean).join(", ") || null,
@@ -80,5 +86,6 @@ function toEvent(e: TmEvent): WhatsUpEvent {
     vibes: tagVibes(`${e.name} ${description ?? ""}`, cls?.segment?.name, cls?.genre?.name),
     imageUrl: image?.url ?? null,
     sourceUrl: e.url,
+    timezone: tz,
   };
 }
