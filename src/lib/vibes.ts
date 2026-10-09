@@ -5,6 +5,7 @@ export const VIBES = [
   { id: "nightlife", label: "Nightlife", emoji: "🪩" },
   { id: "arts", label: "Arts & culture", emoji: "🎨" },
   { id: "music", label: "Live music", emoji: "🎸" },
+  { id: "comedy", label: "Comedy", emoji: "😂" },
   { id: "food", label: "Food & drink", emoji: "🍷" },
   { id: "wellness", label: "Wellness", emoji: "🧘" },
   { id: "nerdy", label: "Nerdy", emoji: "🎲" },

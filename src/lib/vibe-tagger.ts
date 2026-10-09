@@ -7,6 +7,7 @@ const KEYWORDS: Record<VibeId, RegExp> = {
   nightlife: /\b(nightclub|dj|club night|dance party|late night|bar crawl|drag)\b/i,
   arts: /\b(art|gallery|museum|theat(er|re)|ballet|opera|exhibit|symphony|film|poetry)\b/i,
   music: /\b(concerts?|live music|bands?|world tour|album|jazz|orchestra|symphony|dj)\b/i,
+  comedy: /\b(comed(y|ian|ians)|stand-?up|improv|sketch comedy|open mic comedy|laugh\w*|roast)\b/i,
   food: /\b(food|wine|beer|tasting|brunch|dinner|market|culinary|cocktail|brew)\b/i,
   wellness: /\b(yoga|meditat|sound bath|wellness|retreat|breathwork|spa)\b/i,
   nerdy: /\b(comic|anime|trivia|board game|d&d|tabletop|sci-?fi|cosplay|convention|gaming)\b/i,
@@ -24,7 +25,9 @@ const SEGMENT: Record<string, VibeId[]> = {
 export function tagVibes(text: string, segment?: string, genre?: string): VibeId[] {
   const out = new Set<VibeId>();
   (SEGMENT[(segment ?? "").toLowerCase()] ?? []).forEach((v) => out.add(v));
-  if ((genre ?? "").toLowerCase() === "family") out.add("family");
+  const g = (genre ?? "").toLowerCase();
+  if (g === "family") out.add("family");
+  if (g === "comedy") out.add("comedy"); // Ticketmaster files comedy shows under Arts & Theatre > Comedy
   for (const [vibe, re] of Object.entries(KEYWORDS) as [VibeId, RegExp][]) {
     if (re.test(text)) out.add(vibe);
   }
